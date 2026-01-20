@@ -45,14 +45,14 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.util.List;
 
-
 public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implements MenuProvider {
-	public FluidTank tank = new FluidTank(1000 *  16);
+	public FluidTank tank = new FluidTank(1000 * 16);
 	private final LazyOptional<IFluidHandler> tank_holder = LazyOptional.of(() -> tank);
 	private final IItemHandler itemHandler;
 	private final LazyOptional<IItemHandler> itemHolder;
-	private static final int[] SLOTS = new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+	private static final int[] SLOTS = new int[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 	public int prevTankAmount;
+
 	public TileEntityAbsorptionHopper(BlockPos pos, BlockState state) {
 		super(ModBlocks.ABSORPTION_HOPPER.getTileEntityType(), 17, pos, state);
 		itemHandler = createUnSidedHandler();
@@ -77,7 +77,8 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 		}
 	}
 
-	public EnumStatus[] status = new EnumStatus[] { EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE };
+	public EnumStatus[] status = new EnumStatus[] { EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE,
+			EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE, EnumStatus.STATUS_NONE };
 	public boolean showRenderBox;
 	public int offsetX, offsetY, offsetZ;
 
@@ -88,7 +89,8 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 		load(packet.getTag());
 		for (Direction facing : Direction.values()) {
 			if (old[facing.ordinal()] != status[facing.ordinal()]) {
-				getLevel().setBlocksDirty(getBlockPos(), getLevel().getBlockState(getBlockPos()), getLevel().getBlockState(getBlockPos()));
+				getLevel().setBlocksDirty(getBlockPos(), getLevel().getBlockState(getBlockPos()),
+						getLevel().getBlockState(getBlockPos()));
 				return;
 			}
 		}
@@ -125,7 +127,7 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	@Override
-	public void saveAdditional (CompoundTag tagCompound) {
+	public void saveAdditional(CompoundTag tagCompound) {
 		super.saveAdditional(tagCompound);
 		tagCompound.putByte("down", (byte) status[0].ordinal());
 		tagCompound.putByte("up", (byte) status[1].ordinal());
@@ -195,17 +197,21 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	public void updateBlock() {
-		getLevel().sendBlockUpdated(worldPosition, getLevel().getBlockState(worldPosition), getLevel().getBlockState(worldPosition), 3);
+		getLevel().sendBlockUpdated(worldPosition, getLevel().getBlockState(worldPosition),
+				getLevel().getBlockState(worldPosition), 3);
 	}
 
-	public static <T extends BlockEntity> void serverTick(Level level, BlockPos worldPosition, BlockState blockState, T t) {
+	public static <T extends BlockEntity> void serverTick(Level level, BlockPos worldPosition, BlockState blockState,
+			T t) {
 		if (t instanceof TileEntityAbsorptionHopper tile) {
 			tile.prevTankAmount = tile.tank.getFluidAmount();
 			for (Direction facing : Direction.values()) {
 				if (tile.status[facing.ordinal()] == EnumStatus.STATUS_OUTPUT_ITEM) {
 					BlockEntity otherTile = level.getBlockEntity(worldPosition.relative(facing));
-					if (otherTile != null && otherTile.getCapability(ForgeCapabilities.ITEM_HANDLER, facing.getOpposite()).isPresent()) {
-						LazyOptional<IItemHandler> tileOptional = otherTile.getCapability(ForgeCapabilities.ITEM_HANDLER, facing.getOpposite());
+					if (otherTile != null && otherTile
+							.getCapability(ForgeCapabilities.ITEM_HANDLER, facing.getOpposite()).isPresent()) {
+						LazyOptional<IItemHandler> tileOptional = otherTile
+								.getCapability(ForgeCapabilities.ITEM_HANDLER, facing.getOpposite());
 						tileOptional.ifPresent((handler) -> {
 							if (level.getGameTime() % 8 == 0) {
 								for (int i = 0; i < tile.getContainerSize(); ++i) {
@@ -229,7 +235,8 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 							for (int i = 0; i < tile.getContainerSize(); ++i) {
 								if (!tile.getItem(i).isEmpty() && i != 0) {
 									ItemStack stack = tile.getItem(i).copy();
-									ItemStack stack1 = putStackInInventoryAllSlots(iinventory, tile.removeItem(i, 1), facing.getOpposite());
+									ItemStack stack1 = putStackInInventoryAllSlots(iinventory, tile.removeItem(i, 1),
+											facing.getOpposite());
 									if (stack1.isEmpty() || stack1.getCount() == 0)
 										iinventory.setChanged();
 									else
@@ -243,15 +250,20 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 				if (tile.status[facing.ordinal()] == EnumStatus.STATUS_OUTPUT_FLUID) {
 					BlockEntity fluidTile = level.getBlockEntity(worldPosition.relative(facing));
 					if (fluidTile != null) {
-						LazyOptional<IFluidHandler> tileOptional = fluidTile.getCapability(ForgeCapabilities.FLUID_HANDLER, facing.getOpposite());
+						LazyOptional<IFluidHandler> tileOptional = fluidTile
+								.getCapability(ForgeCapabilities.FLUID_HANDLER, facing.getOpposite());
 						tileOptional.ifPresent((receptacle) -> {
 							int tanks = receptacle.getTanks();
 							for (int x = 0; x < tanks; x++) {
 								if (receptacle.getTankCapacity(x) > 0) {
 									FluidStack contents = receptacle.getFluidInTank(x);
 									if (!tile.tank.getFluid().isEmpty()) {
-										if (contents.isEmpty() || contents.getAmount() <= receptacle.getTankCapacity(x) - 100 && contents.containsFluid(new FluidStack(tile.tank.getFluid(), 1))) {
-											receptacle.fill(tile.tank.drain(new FluidStack(tile.tank.getFluid(), 100), FluidAction.EXECUTE), FluidAction.EXECUTE);
+										if (contents.isEmpty()
+												|| contents.getAmount() <= receptacle.getTankCapacity(x) - 100
+														&& contents.containsFluid(
+																new FluidStack(tile.tank.getFluid(), 1))) {
+											receptacle.fill(tile.tank.drain(new FluidStack(tile.tank.getFluid(), 100),
+													FluidAction.EXECUTE), FluidAction.EXECUTE);
 											tile.setChanged();
 										}
 									}
@@ -262,11 +274,11 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 				}
 			}
 
-
 			if (level.getGameTime() % 3 == 0 && !level.hasNeighborSignal(worldPosition)) {
 				if (!tile.isInventoryFull(tile, null))
 					tile.captureDroppedItems();
-				if (tile.tank.getFluid().isEmpty() || tile.tank.getFluid().containsFluid(new FluidStack(ModBlocks.FLUID_XP.get(), 1)))
+				if (tile.tank.getFluid().isEmpty()
+						|| tile.tank.getFluid().containsFluid(new FluidStack(ModBlocks.FLUID_XP.get(), 1)))
 					tile.captureDroppedXP();
 			}
 
@@ -289,36 +301,79 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	public List<ItemEntity> getCaptureItems() {
-		return getLevel().<ItemEntity>getEntitiesOfClass(ItemEntity.class, getAABBWithModifiers(), EntitySelector.ENTITY_STILL_ALIVE);
+		return getLevel().<ItemEntity>getEntitiesOfClass(ItemEntity.class, getAABBWithModifiers(),
+				EntitySelector.ENTITY_STILL_ALIVE);
 	}
 
 	public boolean captureDroppedXP() {
+		// 标记是否发生了吸取动作
+		boolean processed = false;
+
 		for (ExperienceOrb entity : getCaptureXP()) {
 			int xpAmount = entity.getValue();
-			if (tank.getFluidAmount() < tank.getCapacity() - xpAmount * 20) {
-				tank.fill(new FluidStack(ModBlocks.FLUID_XP.get(), xpAmount * 20), FluidAction.EXECUTE);
-				entity.value = 0;
-				entity.remove(Entity.RemovalReason.DISCARDED);
+			// 1 XP = 20 mB
+			int xpToFluidRatio = 20;
+
+			// 计算当前罐子还能容纳多少 mB
+			int fluidSpace = tank.getCapacity() - tank.getFluidAmount();
+
+			// 如果罐子已满，跳过当前球（或者直接break，取决于是否希望检查其他球）
+			if (fluidSpace <= 0) {
+				continue;
 			}
-			return true;
+
+			// 计算能容纳多少 XP 点数
+			int maxXPCanAbsorb = fluidSpace / xpToFluidRatio;
+
+			// 实际吸取的量 = 经验球现有量 和 能容纳量 的较小值
+			// 这样即使经验球很大，也能吸走一部分
+			int xpToAbsorb = Math.min(xpAmount, maxXPCanAbsorb);
+
+			if (xpToAbsorb > 0) {
+				// 填充流体罐
+				tank.fill(new FluidStack(ModBlocks.FLUID_XP.get(), xpToAbsorb * xpToFluidRatio),
+						IFluidHandler.FluidAction.EXECUTE);
+
+				// 计算剩余的 XP
+				int remainingXP = xpAmount - xpToAbsorb;
+
+				if (remainingXP > 0) {
+					// 如果还有剩余，更新经验球的数值，让它变小但继续存在
+					entity.value = remainingXP;
+				} else {
+					// 如果吸完了，设置值为0并清除实体
+					entity.value = 0;
+					entity.remove(Entity.RemovalReason.DISCARDED);
+				}
+
+				processed = true;
+				break;
+				// 如果你希望每次tick把所有球都吸完，就不要加 return
+				// 如果你希望每次只处理一个球（为了性能），可以在这里加 break
+			}
 		}
-		return false;
+		return processed;
 	}
 
 	public List<ExperienceOrb> getCaptureXP() {
-		return getLevel().<ExperienceOrb>getEntitiesOfClass(ExperienceOrb.class, getAABBWithModifiers(), EntitySelector.ENTITY_STILL_ALIVE);
+		return getLevel().<ExperienceOrb>getEntitiesOfClass(ExperienceOrb.class, getAABBWithModifiers(),
+				EntitySelector.ENTITY_STILL_ALIVE);
 	}
 
 	public AABB getAABBWithModifiers() {
 		double x = getBlockPos().getX() + 0.5D;
 		double y = getBlockPos().getY() + 0.5D;
 		double z = getBlockPos().getZ() + 0.5D;
-		return new AABB(x - 3.5D - getModifierAmount(), y - 3.5D - getModifierAmount(), z - 3.5D - getModifierAmount(), x + 3.5D + getModifierAmount(), y + 3.5D + getModifierAmount(), z + 3.5D + getModifierAmount()).move(getoffsetX(), getoffsetY(), getoffsetZ());
+		return new AABB(x - 3.5D - getModifierAmount(), y - 3.5D - getModifierAmount(), z - 3.5D - getModifierAmount(),
+				x + 3.5D + getModifierAmount(), y + 3.5D + getModifierAmount(), z + 3.5D + getModifierAmount())
+				.move(getoffsetX(), getoffsetY(), getoffsetZ());
 	}
 
 	@OnlyIn(Dist.CLIENT)
 	public AABB getAABBForRender() {
-		return new AABB(- 3D - getModifierAmount(), - 3D - getModifierAmount(), - 3D - getModifierAmount(), 4D + getModifierAmount(), 4D + getModifierAmount(), 4D + getModifierAmount()).move(getoffsetX(), getoffsetY(), getoffsetZ());
+		return new AABB(-3D - getModifierAmount(), -3D - getModifierAmount(), -3D - getModifierAmount(),
+				4D + getModifierAmount(), 4D + getModifierAmount(), 4D + getModifierAmount())
+				.move(getoffsetX(), getoffsetY(), getoffsetZ());
 	}
 
 	@Override
@@ -328,15 +383,15 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	public int getoffsetX() {
-		return Math.max(- 4 - getModifierAmount(), Math.min(offsetX, 4 + getModifierAmount()));
+		return Math.max(-4 - getModifierAmount(), Math.min(offsetX, 4 + getModifierAmount()));
 	}
 
 	public int getoffsetY() {
-		return Math.max(- 4 - getModifierAmount(), Math.min(offsetY, 4 + getModifierAmount()));
+		return Math.max(-4 - getModifierAmount(), Math.min(offsetY, 4 + getModifierAmount()));
 	}
 
 	public int getoffsetZ() {
-		return Math.max(- 4 - getModifierAmount(), Math.min(offsetZ, 4 + getModifierAmount()));
+		return Math.max(-4 - getModifierAmount(), Math.min(offsetZ, 4 + getModifierAmount()));
 	}
 
 	private boolean hasUpgrade() {
@@ -399,9 +454,11 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 		return true;
 	}
 
-	public static ItemStack putStackInInventoryAllSlots(Container inventory, ItemStack stack, @Nullable Direction facing) {
-		if (inventory instanceof WorldlyContainer && facing != null && !(inventory instanceof TileEntityAbsorptionHopper) && inventory.canPlaceItem(0, stack.copy())) {
-			WorldlyContainer isidedinventory = (WorldlyContainer)inventory;
+	public static ItemStack putStackInInventoryAllSlots(Container inventory, ItemStack stack,
+			@Nullable Direction facing) {
+		if (inventory instanceof WorldlyContainer && facing != null
+				&& !(inventory instanceof TileEntityAbsorptionHopper) && inventory.canPlaceItem(0, stack.copy())) {
+			WorldlyContainer isidedinventory = (WorldlyContainer) inventory;
 			int[] aint = isidedinventory.getSlotsForFace(facing);
 			for (int k = 0; k < aint.length && !stack.isEmpty(); ++k)
 				stack = insertStack(inventory, stack, aint[k], facing);
@@ -416,7 +473,8 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	public static boolean putDropInInventoryAllSlots(Container inventoryIn, ItemEntity itemIn) {
 		boolean flag = false;
 
-		if (itemIn == null || inventoryIn instanceof TileEntityAbsorptionHopper && inventoryIn.canPlaceItem(0, itemIn.getItem().copy())) {
+		if (itemIn == null || inventoryIn instanceof TileEntityAbsorptionHopper
+				&& inventoryIn.canPlaceItem(0, itemIn.getItem().copy())) {
 			return false;
 		} else {
 			ItemStack itemstack = itemIn.getItem().copy();
@@ -433,17 +491,17 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	private static boolean canInsertItemInSlot(Container inventoryIn, ItemStack stack, int index, Direction side) {
-		return inventoryIn.canPlaceItem(index, stack) && (!(inventoryIn instanceof WorldlyContainer) || ((WorldlyContainer) inventoryIn).canPlaceItemThroughFace(index, stack, side));
+		return inventoryIn.canPlaceItem(index, stack) && (!(inventoryIn instanceof WorldlyContainer)
+				|| ((WorldlyContainer) inventoryIn).canPlaceItemThroughFace(index, stack, side));
 	}
 
-	private static ItemStack insertStack( Container inventory, ItemStack stack, int index, Direction side) {
+	private static ItemStack insertStack(Container inventory, ItemStack stack, int index, Direction side) {
 		ItemStack itemstack = inventory.getItem(index);
 		if (canInsertItemInSlot(inventory, stack, index, side)) {
 			if (itemstack.isEmpty()) {
 				inventory.setItem(index, stack);
 				stack = ItemStack.EMPTY;
-			}
-			else if (canCombine(itemstack, stack)) {
+			} else if (canCombine(itemstack, stack)) {
 				int i = stack.getMaxStackSize() - itemstack.getCount();
 				int j = Math.min(stack.getCount(), i);
 				stack.shrink(j);
@@ -454,35 +512,40 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 	private static boolean canCombine(ItemStack stack1, ItemStack stack2) {
-		return stack1.getItem() != stack2.getItem() ? false : (stack1.getDamageValue() != stack2.getDamageValue() ? false : (stack1.getCount() > stack1.getMaxStackSize() ? false : ItemStack.isSameItemSameTags(stack1, stack2)));
+		return stack1.getItem() != stack2.getItem() ? false
+				: (stack1.getDamageValue() != stack2.getDamageValue() ? false
+						: (stack1.getCount() > stack1.getMaxStackSize() ? false
+								: ItemStack.isSameItemSameTags(stack1, stack2)));
 	}
 
-// FLUID & INVENTORY CAPABILITIES STUFF
+	// FLUID & INVENTORY CAPABILITIES STUFF
 
 	protected IItemHandler createUnSidedHandler() {
 		return new InventoryWrapperAH(this);
 	}
 
 	public int getScaledFluid(int scale) {
-		return tank.getFluid() != null ? (int) ((float) tank.getFluid().getAmount() / (float) tank.getCapacity() * scale) : 0;
+		return tank.getFluid() != null
+				? (int) ((float) tank.getFluid().getAmount() / (float) tank.getCapacity() * scale)
+				: 0;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	@Nonnull
-	public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing)
-	{
+	public <T> LazyOptional<T> getCapability(@Nonnull Capability<T> capability, @Nullable Direction facing) {
 		if (capability == ForgeCapabilities.FLUID_HANDLER)
 			return tank_holder.cast();
 
 		if (capability == ForgeCapabilities.ITEM_HANDLER)
-			return  itemHolder.cast();
+			return itemHolder.cast();
 		return super.getCapability(capability, facing);
 	}
 
 	@Override
 	public AbstractContainerMenu createMenu(int windowID, Inventory playerInventory, Player player) {
-		return new ContainerAbsorptionHopper(windowID, playerInventory, new FriendlyByteBuf(Unpooled.buffer()).writeBlockPos(worldPosition));
+		return new ContainerAbsorptionHopper(windowID, playerInventory,
+				new FriendlyByteBuf(Unpooled.buffer()).writeBlockPos(worldPosition));
 	}
 
 	@Nonnull
@@ -492,4 +555,3 @@ public class TileEntityAbsorptionHopper extends TileEntityInventoryHelper implem
 	}
 
 }
-

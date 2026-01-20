@@ -1,0 +1,4 @@
+rootProject.name = "Mob-Grinding-Utils"
+
+include(":mod")
+project(":mod").projectDir = file("MobGrindingUtils/MobGrindingUtils")
